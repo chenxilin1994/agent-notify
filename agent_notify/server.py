@@ -667,12 +667,12 @@ def is_port_in_use(port: int) -> bool:
     return f":{port}" in result.stdout
 
 
-def get_server_url(port: int = 8765) -> str:
+def get_server_url(port: int = 18865) -> str:
     """Get server URL."""
     return f"http://localhost:{port}"
 
 
-def start_server(port: int = 8765, daemon: bool = True) -> ReuseAddrServer | None:
+def start_server(port: int = 18865, daemon: bool = True) -> ReuseAddrServer | None:
     """Start HTTP server."""
     global _server, _server_thread
 
@@ -705,7 +705,7 @@ def stop_server() -> None:
 if __name__ == "__main__":
     import sys
 
-    port = int(sys.argv[1]) if len(sys.argv) > 1 else 8765
+    port = int(sys.argv[1]) if len(sys.argv) > 1 else 18865
     print(f"Starting server on http://localhost:{port}")
     print(f"Web UI: http://localhost:{port}/")
     print(f"API: http://localhost:{port}/api/latest")

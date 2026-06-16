@@ -2,7 +2,7 @@
 # Agent Notify Server Monitor
 # Checks if server is running, restarts if needed
 
-PORT=8765
+PORT=18865
 PROJECT_DIR="/home/chenxilin/.local/share/agent-notify"
 LOG_FILE="/tmp/agent-notify.log"
 PID_FILE="/tmp/agent-notify.pid"
