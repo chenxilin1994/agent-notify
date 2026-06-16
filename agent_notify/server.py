@@ -88,6 +88,8 @@ class APIHandler(BaseHTTPRequestHandler):
             self.handle_get_event_tags(event_id)
         elif path == "/api/categories":
             self.handle_get_categories()
+        elif path == "/api/analytics":
+            self.handle_analytics()
         elif path == "/api/export/csv":
             self.handle_export_csv(query)
         elif path == "/api/export/json":
@@ -347,6 +349,78 @@ class APIHandler(BaseHTTPRequestHandler):
             self.send_json(rules)
         except Exception as e:
             self.send_json({"error": str(e)}, 500)
+
+    def handle_analytics(self) -> None:
+        """Get analytics data for charts."""
+        try:
+            analytics = self.get_analytics_data()
+            self.send_json(analytics)
+        except Exception as e:
+            self.send_json({"error": str(e)}, 500)
+
+    def get_analytics_data(self) -> dict:
+        """Calculate analytics statistics."""
+        STATE_DIR.mkdir(exist_ok=True)
+        conn = sqlite3.connect(str(DB_PATH))
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+
+        # Get daily stats for last 30 days
+        cursor.execute("""
+            SELECT
+                date(timestamp) as day,
+                COUNT(*) as total,
+                SUM(CASE WHEN agent = 'claude' THEN 1 ELSE 0 END) as claude_count,
+                SUM(CASE WHEN agent = 'codex' THEN 1 ELSE 0 END) as codex_count,
+                SUM(input_tokens) as input_tokens,
+                SUM(output_tokens) as output_tokens
+            FROM events
+            WHERE timestamp >= datetime('now', '-30 days')
+            GROUP BY date(timestamp)
+            ORDER BY day
+        """)
+        daily_stats = [dict(row) for row in cursor.fetchall()]
+
+        # Get token totals by agent
+        cursor.execute("""
+            SELECT
+                agent,
+                SUM(input_tokens) as total_input,
+                SUM(output_tokens) as total_output
+            FROM events
+            GROUP BY agent
+        """)
+        token_totals = {row[0]: {"input": row[1] or 0, "output": row[2] or 0} for row in cursor.fetchall()}
+
+        # Get average response length
+        cursor.execute("""
+            SELECT AVG(LENGTH(summary)) as avg_length,
+                   AVG(input_tokens + output_tokens) as avg_tokens
+            FROM events
+            WHERE summary IS NOT NULL
+        """)
+        avg_row = cursor.fetchone()
+
+        # Get total and week counts
+        cursor.execute("SELECT COUNT(*) FROM events")
+        total_events = cursor.fetchone()[0]
+
+        cursor.execute("SELECT COUNT(*) FROM events WHERE timestamp >= datetime('now', '-7 days')")
+        week_events = cursor.fetchone()[0]
+
+        conn.close()
+
+        return {
+            "daily_stats": daily_stats,
+            "claude_input_tokens": token_totals.get("claude", {}).get("input", 0),
+            "claude_output_tokens": token_totals.get("claude", {}).get("output", 0),
+            "codex_input_tokens": token_totals.get("codex", {}).get("input", 0),
+            "codex_output_tokens": token_totals.get("codex", {}).get("output", 0),
+            "avg_response_length": round(avg_row[0] or 0),
+            "avg_tokens": round(avg_row[1] or 0),
+            "total_events": total_events,
+            "week_events": week_events,
+        }
 
     def handle_update_category(self, rule_id: str) -> None:
         """Update a category rule."""

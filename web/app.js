@@ -1097,7 +1097,178 @@ document.addEventListener("DOMContentLoaded", function() {
 
   setInterval(refreshLatest, 30000);
   setInterval(refreshStats, 60000);
+
+  // Analytics panel handlers
+  document.getElementById("toggle-analytics").addEventListener("click", toggleAnalytics);
+  document.getElementById("analytics-close").addEventListener("click", toggleAnalytics);
 });
+
+// =====================
+// Analytics Functions
+// =====================
+
+let analyticsData = null;
+
+function toggleAnalytics() {
+  const section = document.getElementById("analytics-section");
+  section.classList.toggle("hidden");
+  if (!section.classList.contains("hidden")) {
+    refreshAnalytics();
+  }
+}
+
+function refreshAnalytics() {
+  fetchJson("/api/analytics").then(function(data) {
+    analyticsData = data;
+    renderAnalytics(data);
+  }).catch(function(err) {
+    console.error("Failed to fetch analytics:", err);
+  });
+}
+
+function renderAnalytics(data) {
+  // Draw token chart
+  drawTokenChart(data.daily_stats || []);
+
+  // Draw daily conversation chart
+  drawDailyChart(data.daily_stats || []);
+
+  // Update cost estimates
+  updateCostEstimates(data);
+
+  // Update efficiency stats
+  updateEfficiencyStats(data);
+}
+
+// Simple canvas chart drawing
+function drawTokenChart(dailyStats) {
+  const canvas = document.getElementById("token-chart-canvas");
+  const ctx = canvas.getContext("2d");
+
+  // Set canvas size
+  canvas.width = canvas.parentElement.offsetWidth;
+  canvas.height = 150;
+
+  const width = canvas.width;
+  const height = canvas.height;
+
+  // Clear canvas
+  ctx.clearRect(0, 0, width, height);
+
+  if (dailyStats.length === 0) {
+    ctx.fillStyle = "#4a5568";
+    ctx.font = "12px JetBrains Mono";
+    ctx.textAlign = "center";
+    ctx.fillText("暂无数据", width / 2, height / 2);
+    return;
+  }
+
+  // Get last 7 days
+  const stats = dailyStats.slice(-7);
+  const maxTokens = Math.max(...stats.map(function(s) { return (s.input_tokens || 0) + (s.output_tokens || 0); }), 1);
+
+  const barWidth = (width - 40) / stats.length;
+  const padding = 20;
+
+  // Draw bars
+  stats.forEach(function(stat, i) {
+    const x = padding + i * barWidth;
+    const inputHeight = ((stat.input_tokens || 0) / maxTokens) * (height - 40);
+    const outputHeight = ((stat.output_tokens || 0) / maxTokens) * (height - 40);
+
+    // Input tokens bar (purple)
+    ctx.fillStyle = "#7b61ff";
+    ctx.fillRect(x, height - 30 - inputHeight, barWidth / 2 - 2, inputHeight);
+
+    // Output tokens bar (green)
+    ctx.fillStyle = "#00ffa3";
+    ctx.fillRect(x + barWidth / 2, height - 30 - outputHeight, barWidth / 2 - 2, outputHeight);
+  });
+
+  // Draw axis
+  ctx.strokeStyle = "rgba(136, 146, 166, 0.3)";
+  ctx.beginPath();
+  ctx.moveTo(padding, height - 30);
+  ctx.lineTo(width - padding, height - 30);
+  ctx.stroke();
+}
+
+function drawDailyChart(dailyStats) {
+  const canvas = document.getElementById("daily-chart-canvas");
+  const ctx = canvas.getContext("2d");
+
+  canvas.width = canvas.parentElement.offsetWidth;
+  canvas.height = 150;
+
+  const width = canvas.width;
+  const height = canvas.height;
+
+  ctx.clearRect(0, 0, width, height);
+
+  if (dailyStats.length === 0) {
+    ctx.fillStyle = "#4a5568";
+    ctx.font = "12px JetBrains Mono";
+    ctx.textAlign = "center";
+    ctx.fillText("暂无数据", width / 2, height / 2);
+    return;
+  }
+
+  const stats = dailyStats.slice(-7);
+  const maxConversations = Math.max(...stats.map(function(s) { return (s.claude_count || 0) + (s.codex_count || 0); }), 1);
+
+  const barWidth = (width - 40) / stats.length;
+  const padding = 20;
+
+  stats.forEach(function(stat, i) {
+    const x = padding + i * barWidth;
+    const claudeHeight = ((stat.claude_count || 0) / maxConversations) * (height - 40);
+    const codexHeight = ((stat.codex_count || 0) / maxConversations) * (height - 40);
+
+    // Claude bar (purple)
+    ctx.fillStyle = "#7b61ff";
+    ctx.fillRect(x, height - 30 - claudeHeight, barWidth / 2 - 2, claudeHeight);
+
+    // Codex bar (green)
+    ctx.fillStyle = "#00ffa3";
+    ctx.fillRect(x + barWidth / 2, height - 30 - codexHeight, barWidth / 2 - 2, codexHeight);
+  });
+
+  // Draw axis
+  ctx.strokeStyle = "rgba(136, 146, 166, 0.3)";
+  ctx.beginPath();
+  ctx.moveTo(padding, height - 30);
+  ctx.lineTo(width - padding, height - 30);
+  ctx.stroke();
+}
+
+function updateCostEstimates(data) {
+  // Claude pricing: ~$3 per million tokens (input + output)
+  // GPT pricing: ~$2 per million tokens
+  const claudeInputTokens = data.claude_input_tokens || 0;
+  const claudeOutputTokens = data.claude_output_tokens || 0;
+  const codexInputTokens = data.codex_input_tokens || 0;
+  const codexOutputTokens = data.codex_output_tokens || 0;
+
+  const claudeCost = (claudeInputTokens + claudeOutputTokens) * 3 / 1000000;
+  const codexCost = (codexInputTokens + codexOutputTokens) * 2 / 1000000;
+  const totalCost = claudeCost + codexCost;
+
+  document.getElementById("claude-cost").textContent = "$" + claudeCost.toFixed(2);
+  document.getElementById("codex-cost").textContent = "$" + codexCost.toFixed(2);
+  document.getElementById("total-cost").textContent = "$" + totalCost.toFixed(2);
+}
+
+function updateEfficiencyStats(data) {
+  const avgResponse = data.avg_response_length || 0;
+  const avgTokens = data.avg_tokens || 0;
+  const totalConversations = data.total_events || 0;
+  const weekConversations = data.week_events || 0;
+
+  document.getElementById("avg-response").textContent = avgResponse + " 字";
+  document.getElementById("avg-tokens").textContent = avgTokens + " tokens";
+  document.getElementById("total-conversations").textContent = totalConversations + " 次";
+  document.getElementById("week-conversations").textContent = weekConversations + " 次";
+}
 
 // =====================
 // Tag Management

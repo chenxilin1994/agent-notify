@@ -35,6 +35,8 @@
         </div>
 
         <div class="latest-card">
+
+        <div class="latest-card">
           <div class="card-header">
             <span class="agent-badge" id="latest-agent">未知</span>
             <span class="model-badge" id="latest-model">--</span>
@@ -129,8 +131,87 @@
 
         <div class="stats-group">
           <span class="stats-text" id="stats-info">--</span>
+          <button id="toggle-analytics" class="btn-toggle">📊 分析</button>
         </div>
       </nav>
+
+      <!-- 数据分析面板 -->
+      <section id="analytics-section" class="analytics-section hidden">
+        <div class="section-header">
+          <span class="section-icon">📊</span>
+          <h2>数据分析</h2>
+          <button class="section-close" id="analytics-close">✕</button>
+        </div>
+
+        <div class="analytics-grid">
+          <!-- Token 使用趋势 -->
+          <div class="analytics-card">
+            <div class="card-title">Token 使用趋势</div>
+            <div class="chart-container" id="token-chart">
+              <canvas id="token-chart-canvas"></canvas>
+            </div>
+            <div class="chart-legend">
+              <span class="legend-item legend-input">● 输入 Token</span>
+              <span class="legend-item legend-output">● 输出 Token</span>
+            </div>
+          </div>
+
+          <!-- 每日对话量 -->
+          <div class="analytics-card">
+            <div class="card-title">每日对话量</div>
+            <div class="chart-container" id="daily-chart">
+              <canvas id="daily-chart-canvas"></canvas>
+            </div>
+            <div class="chart-legend">
+              <span class="legend-item legend-claude">● Claude</span>
+              <span class="legend-item legend-codex">● Codex</span>
+            </div>
+          </div>
+
+          <!-- 成本估算 -->
+          <div class="analytics-card">
+            <div class="card-title">成本估算</div>
+            <div class="cost-breakdown">
+              <div class="cost-row">
+                <span class="cost-label">Claude 总成本</span>
+                <span class="cost-value" id="claude-cost">$0.00</span>
+              </div>
+              <div class="cost-row">
+                <span class="cost-label">Codex 总成本</span>
+                <span class="cost-value" id="codex-cost">$0.00</span>
+              </div>
+              <div class="cost-row total">
+                <span class="cost-label">合计</span>
+                <span class="cost-value total-value" id="total-cost">$0.00</span>
+              </div>
+            </div>
+            <div class="cost-note">* 基于 Claude ~$3/M tokens, GPT ~$2/M tokens 估算</div>
+          </div>
+
+          <!-- 效率统计 -->
+          <div class="analytics-card">
+            <div class="card-title">效率统计</div>
+            <div class="efficiency-stats">
+              <div class="stat-item">
+                <span class="stat-label">平均响应长度</span>
+                <span class="stat-value" id="avg-response">--</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">平均 Token 数</span>
+                <span class="stat-value" id="avg-tokens">--</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">总对话数</span>
+                <span class="stat-value" id="total-conversations">--</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">本周对话</span>
+                <span class="stat-value" id="week-conversations">--</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       <!-- 历史记录表格 -->
       <section class="history-section">
