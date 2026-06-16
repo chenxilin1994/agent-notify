@@ -1350,6 +1350,7 @@ body {
   font-weight: 700;
   color: var(--accent-primary);
   margin: var(--spacing-md) 0 var(--spacing-sm) 0;
+  padding-bottom: var(--spacing-sm);
   border-bottom: 1px solid rgba(0, 255, 163, 0.2);
 }
 
@@ -1359,6 +1360,7 @@ body {
   font-weight: 600;
   color: var(--accent-secondary);
   margin: var(--spacing-sm) 0;
+  display: block;
 }
 
 .md-h3 {
@@ -1367,6 +1369,7 @@ body {
   font-weight: 500;
   color: var(--text-primary);
   margin: var(--spacing-sm) 0;
+  display: block;
 }
 
 .md-p {
