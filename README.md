@@ -10,8 +10,13 @@
 - **Markdown 预览**：支持渲染 Markdown 或查看原始文本
 - **数据管理**：清理旧数据、导出 CSV/JSON
 - **Token 统计**：显示模型和 token 使用量
+- **🆕 Windows 桌面应用**：完整 Electron 应用，系统托盘集成
 
 ## 安装
+
+### 方式 1: Web UI（推荐）
+
+适合 Linux/Mac 或已安装 Python 的环境。
 
 ### 1. 克隆仓库
 
@@ -47,7 +52,42 @@ python3 -m agent_notify.server
 bash bin/start-server.sh
 ```
 
-Web UI 地址：http://localhost:8765
+Web UI 地址：http://localhost:18865
+
+### 方式 2: Windows 桌面应用
+
+适合 Windows 用户，提供完整桌面体验。
+
+#### 构建 Windows 应用
+
+```bash
+cd desktop
+
+# 安装依赖
+npm install
+
+# 开发运行
+npm start
+
+# 构建安装包
+npm run build
+# 输出: dist/Agent Notify Setup 1.0.0.exe
+
+# 构建便携版
+npm run build-portable
+# 输出: dist/AgentNotify-Portable.exe
+```
+
+#### 桌面应用特性
+
+- ✅ 系统托盘图标
+- ✅ 双击托盘打开界面
+- ✅ 右键菜单控制
+- ✅ 关闭窗口隐藏到托盘
+- ✅ 后台自动启动 Python 服务
+- ✅ Windows 安装包 + 便携版
+
+详见：`desktop/README.md`
 
 ## 项目结构
 
@@ -62,8 +102,16 @@ agent-notify/
 │   ├── index.html         # 主页面
 │   ├── app.js             # JavaScript
 │   └── styles.css         # 样式
+├── desktop/               # Electron 桌面应用
+│   ├── package.json       # npm 配置
+│   ├── main.js            # 主进程
+│   ├── preload.js         # 预加载脚本
+│   ├── build.sh           # 构建脚本 (Linux/Mac)
+│   ├── build.ps1          # 构建脚本 (Windows)
+│   └── README.md          # 桌面应用说明
 ├── bin/                   # 启动脚本
-│   └── start-server.sh
+│   ├── start-server.sh
+│   └── monitor-server.sh  # 服务监控
 ├── state/                 # 数据存储（自动生成）
 └── tests/                 # 测试
 ```
