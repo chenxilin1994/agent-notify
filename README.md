@@ -2,6 +2,8 @@
 
 一个 Claude Code / Codex CLI 的响应完成通知钩子，提供 Web UI 界面查看对话历史记录。
 
+**📖 完整安装教程**: 请查看 [docs/QUICK-START.md](docs/QUICK-START.md) 快速上手！
+
 ## 功能
 
 - **实时通知**：当 Claude/Codex 完成响应时，自动打开 Web UI 显示结果
@@ -137,6 +139,13 @@ agent-notify/
 ## 界面预览
 
 ![Web UI](docs/screenshot.png)
+
+## 📚 文档
+
+- **[快速开始](docs/QUICK-START.md)** - 3 分钟快速安装指南 ⭐
+- **[完整教程](docs/INSTALLATION-GUIDE.md)** - 详细安装步骤和配置
+- **[常见问题](docs/FAQ.md)** - 21+ 问题解答
+- **[桌面应用](desktop/README.md)** - Windows 桌面应用说明
 
 ## 技术栈
 
