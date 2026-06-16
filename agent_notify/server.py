@@ -86,10 +86,6 @@ class APIHandler(BaseHTTPRequestHandler):
             # Extract event_id from path like /api/events/{event_id}/tags
             event_id = path.split("/")[-2]
             self.handle_get_event_tags(event_id)
-        elif path.startswith("/api/events/") and path.endswith("/bookmark"):
-            # Extract event_id from path like /api/events/{event_id}/bookmark
-            event_id = path.split("/")[-2]
-            self.handle_bookmark(event_id)
         elif path == "/api/categories":
             self.handle_get_categories()
         elif path == "/api/analytics":
@@ -123,6 +119,10 @@ class APIHandler(BaseHTTPRequestHandler):
             self.handle_clear_all()
         elif path == "/api/tags":
             self.handle_create_tag()
+        elif path.startswith("/api/events/") and path.endswith("/bookmark"):
+            # Extract event_id from path like /api/events/{event_id}/bookmark
+            event_id = path.split("/")[-2]
+            self.handle_bookmark(event_id)
         elif path.startswith("/api/events/") and path.endswith("/tags"):
             # Extract event_id from path like /api/events/{event_id}/tags
             event_id = path.split("/")[-2]
