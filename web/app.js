@@ -43,6 +43,32 @@ function markdownToHtml(text) {
   // Inline code (`code`)
   html = html.replace(/`([^`]+)`/g, '<code class="md-inline-code">$1</code>');
 
+  // Tables: | header | header | format
+  html = html.replace(/^\|(.+)\|\s*\n\|[-:\s|]+\|\s*\n((?:\|.+\|\s*\n?)+)/gm, function(match, headerRow, bodyRows) {
+    // Parse header
+    const headers = headerRow.split('|').map(function(h) { return h.trim(); }).filter(function(h) { return h; });
+    let tableHtml = '<table class="md-table"><thead><tr>';
+    headers.forEach(function(h) {
+      tableHtml += '<th class="md-th">' + h + '</th>';
+    });
+    tableHtml += '</tr></thead><tbody>';
+
+    // Parse body rows
+    const rows = bodyRows.trim().split('\n');
+    rows.forEach(function(row) {
+      const cells = row.split('|').map(function(c) { return c.trim(); }).filter(function(c) { return c; });
+      if (cells.length > 0) {
+        tableHtml += '<tr class="md-tr">';
+        cells.forEach(function(c) {
+          tableHtml += '<td class="md-td">' + c + '</td>';
+        });
+        tableHtml += '</tr>';
+      }
+    });
+    tableHtml += '</tbody></table>';
+    return tableHtml;
+  });
+
   // Headers
   html = html.replace(/^### (.+)$/gm, '<h3 class="md-h3">$1</h3>');
   html = html.replace(/^## (.+)$/gm, '<h2 class="md-h2">$1</h2>');
