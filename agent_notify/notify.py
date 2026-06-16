@@ -343,9 +343,16 @@ def process_hook_payload(payload: dict) -> dict:
     event = normalize_hook_payload(payload, source_agent=detect_source_agent(payload))
     # Store in SQLite (no limit on history)
     insert_event(event)
-    # No desktop notification - web UI is enough
-    # show_notification(event["title"], event["summary"])
-    open_in_browser(event["detail_path"])
+
+    # Write notification flag for Electron desktop app
+    # Electron will detect this file and open the window immediately
+    flag_file = Path(ROOT) / "state" / "new_event.flag"
+    flag_file.parent.mkdir(exist_ok=True)
+    flag_file.write_text(datetime.now(timezone.utc).isoformat())
+
+    # Don't open browser - let Electron handle it
+    # open_in_browser(event["detail_path"])  # Commented out
+
     return event
 
 
