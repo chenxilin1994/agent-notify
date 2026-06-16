@@ -367,7 +367,7 @@ function renderTable(events) {
   if (badge) badge.textContent = paginationState.total + " 条记录";
 
   if (!events || events.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" class="empty-state"><span class="loading-text">无记录</span></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="empty-state"><span class="loading-text">无记录</span></td></tr>';
     return;
   }
 
@@ -377,12 +377,21 @@ function renderTable(events) {
     const time = formatTimestamp(item.timestamp);
     const date = formatDateShort(item.timestamp);
     const autoCategory = item.auto_category || "";
+    const bookmarked = item.bookmarked || false;
 
     // Get search term for highlighting
     const searchInput = document.getElementById("search-input");
     const searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : "";
 
     html += "<tr>";
+
+    // Bookmark column
+    const bookmarkClass = bookmarked ? "bookmarked" : "";
+    const bookmarkIcon = bookmarked ? "★" : "☆";
+    html += '<td class="col-bookmark ' + bookmarkClass + '" data-event-id="' + item.id + '">';
+    html += '<button class="bookmark-btn" data-event-id="' + item.id + '" title="收藏">' + bookmarkIcon + '</button>';
+    html += "</td>";
+
     html += '<td class="col-time">' + date + " " + time + "</td>";
     html += '<td class="col-agent ' + agentClass + '">' + (item.agent || "-") + "</td>";
 
@@ -429,6 +438,14 @@ function renderTable(events) {
     html += "</tr>";
   });
   tbody.innerHTML = html;
+
+  // Add click handlers to bookmark buttons
+  tbody.querySelectorAll(".bookmark-btn").forEach(function(btn) {
+    btn.addEventListener("click", function(e) {
+      e.stopPropagation();
+      toggleBookmark(btn.dataset.eventId, btn);
+    });
+  });
 
   // Add click handlers to cell content (not the copy button)
   tbody.querySelectorAll(".col-input, .col-summary").forEach(function(cell) {
@@ -660,6 +677,7 @@ function refreshHistory() {
   const projectFilter = document.getElementById("project-filter");
   const categoryFilter = document.getElementById("category-filter");
   const tagsFilter = document.getElementById("tags-filter");
+  const bookmarkFilter = document.getElementById("bookmark-filter");
 
   const search = searchInput ? searchInput.value.trim() : "";
   const timeDays = timeFilter ? timeFilter.value : "all";
@@ -667,6 +685,7 @@ function refreshHistory() {
   const project = projectFilter ? projectFilter.value : "all";
   const category = categoryFilter ? categoryFilter.value : "all";
   const tags = tagsFilter ? tagsFilter.value : "all";
+  const bookmarked = bookmarkFilter ? bookmarkFilter.value : "all";
 
   const params = new URLSearchParams({
     page: paginationState.page,
@@ -680,6 +699,7 @@ function refreshHistory() {
   if (agent !== "all") params.set("agent", agent);
   if (project !== "all") params.set("project", project);
   if (category !== "all") params.set("category", category);
+  if (bookmarked === "bookmarked") params.set("bookmarked", "true");
 
   fetchJson("/api/history?" + params.toString()).then(function(data) {
     paginationState = {
@@ -949,6 +969,11 @@ document.addEventListener("DOMContentLoaded", function() {
     refreshHistory();
   });
 
+  document.getElementById("bookmark-filter").addEventListener("change", function() {
+    paginationState.page = 1;
+    refreshHistory();
+  });
+
   document.getElementById("search-input").addEventListener("input", function() {
     paginationState.page = 1;
     refreshHistory();
@@ -1092,6 +1117,44 @@ document.addEventListener("DOMContentLoaded", function() {
       if (!responseModal.classList.contains("hidden")) {
         closeResponseModal();
       }
+      const analyticsSection = document.getElementById("analytics-section");
+      if (!analyticsSection.classList.contains("hidden")) {
+        toggleAnalytics();
+      }
+      const adminPanel = document.getElementById("admin-panel");
+      if (!adminPanel.classList.contains("hidden")) {
+        toggleAdminPanel();
+      }
+      const exportPanel = document.getElementById("export-panel");
+      if (!exportPanel.classList.contains("hidden")) {
+        toggleExportPanel();
+      }
+      const contentModal = document.getElementById("content-modal");
+      if (!contentModal.classList.contains("hidden")) {
+        closeModal();
+      }
+    }
+
+    // Ctrl+F: Focus search
+    if (e.ctrlKey && e.key === "f") {
+      e.preventDefault();
+      const searchInput = document.getElementById("search-input");
+      if (searchInput) {
+        searchInput.focus();
+        searchInput.select();
+      }
+    }
+
+    // Ctrl+A: Toggle analytics
+    if (e.ctrlKey && e.key === "a") {
+      e.preventDefault();
+      toggleAnalytics();
+    }
+
+    // Ctrl+B: Toggle admin panel
+    if (e.ctrlKey && e.key === "b") {
+      e.preventDefault();
+      toggleAdminPanel();
     }
   });
 
@@ -1108,6 +1171,28 @@ document.addEventListener("DOMContentLoaded", function() {
 // =====================
 
 let analyticsData = null;
+
+// =====================
+// Bookmark Functions
+// =====================
+
+function toggleBookmark(eventId, btn) {
+  fetchJson("/api/events/" + eventId + "/bookmark", { method: "POST" }).then(function(result) {
+    if (result.bookmarked) {
+      btn.textContent = "★";
+      btn.parentElement.classList.add("bookmarked");
+    } else {
+      btn.textContent = "☆";
+      btn.parentElement.classList.remove("bookmarked");
+    }
+  }).catch(function(err) {
+    console.error("Failed to toggle bookmark:", err);
+  });
+}
+
+// =====================
+// Analytics Functions (continued)
+// =====================
 
 function toggleAnalytics() {
   const section = document.getElementById("analytics-section");

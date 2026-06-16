@@ -93,6 +93,7 @@ def init_db() -> None:
             model TEXT,
             input_tokens INTEGER,
             output_tokens INTEGER,
+            bookmarked BOOLEAN DEFAULT FALSE,
             source_event TEXT,
             raw_excerpt TEXT,
             user_input TEXT,
@@ -121,6 +122,11 @@ def init_db() -> None:
 
     try:
         cursor.execute("ALTER TABLE events ADD COLUMN output_tokens INTEGER")
+    except sqlite3.OperationalError:
+        pass  # Column already exists
+
+    try:
+        cursor.execute("ALTER TABLE events ADD COLUMN bookmarked BOOLEAN DEFAULT FALSE")
     except sqlite3.OperationalError:
         pass  # Column already exists
 
@@ -276,6 +282,7 @@ def get_history(
     time_days: str | None = None,
     category: str | None = None,
     search: str | None = None,
+    bookmarked: bool = False,
     sort_column: str = "timestamp",
     sort_direction: str = "desc",
 ) -> tuple[list[dict], int]:
@@ -303,6 +310,10 @@ def get_history(
     if category and category != "all":
         where_clauses.append("auto_category = ?")
         params.append(category)
+
+    if bookmarked:
+        where_clauses.append("bookmarked = ?")
+        params.append(True)
 
     if time_days and time_days != "all":
         if time_days == "today":

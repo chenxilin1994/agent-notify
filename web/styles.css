@@ -703,6 +703,31 @@ body {
   width: 140px;
 }
 
+.col-bookmark {
+  width: 40px;
+  text-align: center;
+}
+
+.bookmark-btn {
+  width: 24px;
+  height: 24px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.bookmark-btn:hover {
+  color: var(--accent-secondary);
+  transform: scale(1.2);
+}
+
+.col-bookmark.bookmarked .bookmark-btn {
+  color: #ffd700;
+}
+
 .col-agent {
   width: 80px;
 }
@@ -802,6 +827,11 @@ body {
 
 .footer-time {
   color: var(--accent-primary);
+}
+
+.shortcut-hint {
+  color: var(--accent-secondary);
+  opacity: 0.7;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────

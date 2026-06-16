@@ -124,6 +124,14 @@
           </select>
         </div>
 
+        <div class="filter-group">
+          <label class="filter-label">收藏</label>
+          <select id="bookmark-filter" class="terminal-select">
+            <option value="all">◈ 全部</option>
+            <option value="bookmarked">◈ 已收藏</option>
+          </select>
+        </div>
+
         <div class="search-group">
           <span class="search-icon">⌕</span>
           <input type="search" id="search-input" class="terminal-input" placeholder="搜索对话..." />
@@ -302,6 +310,9 @@
           <table id="history-table">
             <thead>
               <tr>
+                <th class="col-bookmark">
+                  <span>☆</span>
+                </th>
                 <th data-sort="timestamp" class="col-time">
                   <span>时间</span>
                   <span class="sort-arrow"></span>
@@ -353,7 +364,7 @@
 
       <!-- 底部状态 -->
       <footer class="terminal-footer">
-        <span class="footer-info">Agent Notify // SQLite存储 // 无限历史</span>
+        <span class="footer-info">Agent Notify // SQLite存储 // 无限历史 // <span class="shortcut-hint">⌨ 快捷键: Ctrl+F 搜索, Ctrl+A 分析, Esc 关闭</span></span>
         <span class="footer-time" id="current-time">--:--:--</span>
       </footer>
     </main>

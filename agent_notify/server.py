@@ -86,6 +86,10 @@ class APIHandler(BaseHTTPRequestHandler):
             # Extract event_id from path like /api/events/{event_id}/tags
             event_id = path.split("/")[-2]
             self.handle_get_event_tags(event_id)
+        elif path.startswith("/api/events/") and path.endswith("/bookmark"):
+            # Extract event_id from path like /api/events/{event_id}/bookmark
+            event_id = path.split("/")[-2]
+            self.handle_bookmark(event_id)
         elif path == "/api/categories":
             self.handle_get_categories()
         elif path == "/api/analytics":
@@ -194,6 +198,7 @@ class APIHandler(BaseHTTPRequestHandler):
             time_days = query.get("time_days", [None])[0]
             category = query.get("category", [None])[0]
             search = query.get("search", [None])[0]
+            bookmarked = query.get("bookmarked", ["false"])[0] == "true"
             sort_column = query.get("sort", ["timestamp"])[0]
             sort_direction = query.get("dir", ["desc"])[0]
 
@@ -205,6 +210,7 @@ class APIHandler(BaseHTTPRequestHandler):
                 time_days=time_days,
                 category=category,
                 search=search,
+                bookmarked=bookmarked,
                 sort_column=sort_column,
                 sort_direction=sort_direction,
             )
@@ -335,6 +341,33 @@ class APIHandler(BaseHTTPRequestHandler):
                 self.send_json({"success": True})
             else:
                 self.send_json({"error": "Tag not assigned to event"}, 404)
+        except Exception as e:
+            self.send_json({"error": str(e)}, 500)
+
+    def handle_bookmark(self, event_id: str) -> None:
+        """Toggle bookmark status for an event."""
+        try:
+            STATE_DIR.mkdir(exist_ok=True)
+            conn = sqlite3.connect(str(DB_PATH))
+            cursor = conn.cursor()
+
+            # Get current status
+            cursor.execute("SELECT bookmarked FROM events WHERE id = ?", (event_id,))
+            row = cursor.fetchone()
+            if row is None:
+                conn.close()
+                self.send_json({"error": "Event not found"}, 404)
+                return
+
+            current_status = row[0] or False
+            new_status = not current_status
+
+            # Update
+            cursor.execute("UPDATE events SET bookmarked = ? WHERE id = ?", (new_status, event_id))
+            conn.commit()
+            conn.close()
+
+            self.send_json({"success": True, "bookmarked": new_status})
         except Exception as e:
             self.send_json({"error": str(e)}, 500)
 
