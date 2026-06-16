@@ -1123,6 +1123,20 @@ body {
 /* ─────────────────────────────────────────────────────────────────────────────
    RESPONSE VIEW MODAL - Large text viewer
    ───────────────────────────────────────────────────────────────────────────── */
+#response-view-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1500;
+}
+
+#response-view-modal.hidden {
+  display: none;
+}
+
 .response-view-container {
   max-width: 900px;
   width: 95%;
