@@ -1,0 +1,21 @@
+# State and database files
+state/
+*.db
+*.json
+
+# Debug logs
+hook_payload_debug.json
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

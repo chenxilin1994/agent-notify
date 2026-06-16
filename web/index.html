@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Agent Notify // 终端</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <!-- 背景动画层 -->
+    <div class="matrix-bg" aria-hidden="true"></div>
+
+    <main class="terminal-container">
+      <!-- 顶部状态栏 -->
+      <header class="terminal-header">
+        <div class="header-left">
+          <span class="terminal-icon">◈</span>
+          <span class="terminal-title">AGENT_NOTIFY</span>
+          <span class="terminal-version">v2.1</span>
+        </div>
+        <div class="header-right">
+          <span class="status-indicator" id="connection-status">● CONNECTED</span>
+        </div>
+      </header>
+
+      <!-- 最新消息区域 -->
+      <section class="latest-section">
+        <div class="section-header">
+          <span class="section-icon">◉</span>
+          <h1>最新对话</h1>
+          <span class="timestamp-badge" id="latest-time">--:--:--</span>
+        </div>
+
+        <div class="latest-card">
+          <div class="card-header">
+            <span class="agent-badge" id="latest-agent">未知</span>
+            <span class="model-badge" id="latest-model">--</span>
+            <span class="token-badge" id="latest-tokens">输入/输出: --</span>
+          </div>
+
+          <div class="card-body">
+            <div class="user-input-block">
+              <span class="input-label">
+                <span class="label-text">⟩ 用户输入</span>
+                <span class="label-actions">
+                  <button class="label-copy-btn" id="copy-user-input" title="复制">⎘</button>
+                </span>
+              </span>
+              <div class="text-with-copy">
+                <p class="user-input-text" id="latest-user-input">等待数据...</p>
+              </div>
+            </div>
+
+            <div class="response-block">
+              <span class="response-label">
+                <span class="label-text">⟨ AI回复</span>
+                <span class="label-actions">
+                  <button class="label-action-btn" id="toggle-mode" title="切换预览/原始模式">◈</button>
+                  <button class="label-action-btn" id="toggle-expand" title="放大/缩小">▣</button>
+                  <button class="label-copy-btn" id="copy-response" title="复制">⎘</button>
+                </span>
+              </span>
+              <div class="response-container" id="response-container">
+                <div class="response-text" id="latest-summary">等待数据...</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card-footer">
+            <span class="project-path" id="latest-project">/未知</span>
+            <span class="session-id" id="latest-session">会话: --</span>
+          </div>
+        </div>
+
+        <p id="status-message" class="status-text" role="status" aria-live="polite"></p>
+      </section>
+
+      <!-- 控制面板 -->
+      <nav class="control-panel">
+        <div class="filter-group">
+          <label class="filter-label">时间</label>
+          <select id="time-filter" class="terminal-select">
+            <option value="all">◈ 全部</option>
+            <option value="today">◈ 今天</option>
+            <option value="7">◈ 7天</option>
+            <option value="30">◈ 30天</option>
+            <option value="90">◈ 90天</option>
+            <option value="365">◈ 365天</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label class="filter-label">代理</label>
+          <select id="agent-filter" class="terminal-select">
+            <option value="all">◈ 全部</option>
+            <option value="claude">◈ CLAUDE</option>
+            <option value="codex">◈ CODEX</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label class="filter-label">项目</label>
+          <select id="project-filter" class="terminal-select">
+            <option value="all">◈ 全部</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label class="filter-label">分类</label>
+          <select id="category-filter" class="terminal-select">
+            <option value="all">◈ 全部</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label class="filter-label">标签</label>
+          <select id="tags-filter" class="terminal-select">
+            <option value="all">◈ 全部</option>
+          </select>
+        </div>
+
+        <div class="search-group">
+          <span class="search-icon">⌕</span>
+          <input type="search" id="search-input" class="terminal-input" placeholder="搜索对话..." />
+        </div>
+
+        <div class="stats-group">
+          <span class="stats-text" id="stats-info">--</span>
+        </div>
+      </nav>
+
+      <!-- 历史记录表格 -->
+      <section class="history-section">
+        <div class="section-header">
+          <span class="section-icon">▣</span>
+          <h2>历史记录</h2>
+          <span class="count-badge" id="history-count">0 条记录</span>
+          <button id="toggle-admin" class="btn-toggle">⚙ 管理</button>
+          <button id="export-btn" class="btn-toggle">⎙ 导出</button>
+        </div>
+
+        <!-- 导出面板 -->
+        <div id="export-panel" class="admin-panel hidden">
+          <div class="admin-header">
+            <span class="admin-icon">⎙</span>
+            <span class="admin-title">导出数据</span>
+            <button class="admin-close" id="export-close">✕</button>
+          </div>
+
+          <div class="admin-actions">
+            <button class="btn-primary" id="export-csv">
+              <span class="btn-icon">CSV</span>
+              <span>导出 CSV</span>
+            </button>
+            <button class="btn-primary" id="export-json">
+              <span class="btn-icon">JSON</span>
+              <span>导出 JSON</span>
+            </button>
+          </div>
+
+          <p id="export-message" class="admin-message"></p>
+        </div>
+
+        <!-- 数据管理面板 -->
+        <div id="admin-panel" class="admin-panel hidden">
+          <div class="admin-header">
+            <span class="admin-icon">⚠</span>
+            <span class="admin-title">数据管理</span>
+            <button class="admin-close" id="admin-close">✕</button>
+          </div>
+
+          <div class="admin-stats" id="admin-stats">
+            <div class="stat-row">
+              <span class="stat-label">近7天:</span>
+              <span class="stat-value" id="stat-7">--</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">近30天:</span>
+              <span class="stat-value" id="stat-30">--</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">近90天:</span>
+              <span class="stat-value" id="stat-90">--</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">近一年:</span>
+              <span class="stat-value" id="stat-365">--</span>
+            </div>
+          </div>
+
+          <div class="admin-actions">
+            <button class="btn-danger" data-days="7">
+              <span class="btn-icon">✕</span>
+              <span>清除 7天外</span>
+            </button>
+            <button class="btn-danger" data-days="30">
+              <span class="btn-icon">✕</span>
+              <span>清除 30天外</span>
+            </button>
+            <button class="btn-danger" data-days="90">
+              <span class="btn-icon">✕</span>
+              <span>清除 90天外</span>
+            </button>
+            <button class="btn-danger" data-days="365">
+              <span class="btn-icon">✕</span>
+              <span>清除 一年外</span>
+            </button>
+            <button class="btn-danger-danger" data-days="all">
+              <span class="btn-icon">⚠</span>
+              <span>清除全部</span>
+            </button>
+          </div>
+
+          <p id="admin-message" class="admin-message"></p>
+        </div>
+
+        <div class="table-wrapper">
+          <table id="history-table">
+            <thead>
+              <tr>
+                <th data-sort="timestamp" class="col-time">
+                  <span>时间</span>
+                  <span class="sort-arrow"></span>
+                </th>
+                <th data-sort="agent" class="col-agent">
+                  <span>代理</span>
+                  <span class="sort-arrow"></span>
+                </th>
+                <th data-sort="model" class="col-model">
+                  <span>模型</span>
+                  <span class="sort-arrow"></span>
+                </th>
+                <th class="col-tokens">
+                  <span>Token</span>
+                </th>
+                <th data-sort="auto_category" class="col-category">
+                  <span>分类</span>
+                  <span class="sort-arrow"></span>
+                </th>
+                <th data-sort="project" class="col-project">
+                  <span>项目</span>
+                  <span class="sort-arrow"></span>
+                </th>
+                <th data-sort="user_input" class="col-input">
+                  <span>用户输入</span>
+                  <span class="sort-arrow"></span>
+                </th>
+                <th data-sort="summary" class="col-summary">
+                  <span>AI回复</span>
+                  <span class="sort-arrow"></span>
+                </th>
+              </tr>
+            </thead>
+            <tbody id="history-body">
+              <tr>
+                <td colspan="7" class="loading-cell">
+                  <span class="loading-text">⟳ 加载中...</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 翻页控件 -->
+        <div class="pagination-wrapper">
+          <div id="pagination-controls" class="pagination-controls"></div>
+        </div>
+      </section>
+
+      <!-- 底部状态 -->
+      <footer class="terminal-footer">
+        <span class="footer-info">Agent Notify // SQLite存储 // 无限历史</span>
+        <span class="footer-time" id="current-time">--:--:--</span>
+      </footer>
+    </main>
+
+    <!-- 内容查看模态框 -->
+    <div id="content-modal" class="modal-overlay hidden">
+      <div class="modal-container">
+        <div class="modal-header">
+          <span class="modal-icon">◈</span>
+          <span class="modal-title" id="modal-title">详情查看</span>
+          <button class="modal-close" id="modal-close">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="modal-label" id="modal-label">用户输入</div>
+          <div class="modal-content" id="modal-content"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-modal" id="modal-copy">
+            <span class="btn-icon">⎘</span>
+            <span>复制内容</span>
+          </button>
+          <span class="modal-status" id="modal-status"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI回复详情查看模态框 -->
+    <div id="response-view-modal" class="modal-overlay hidden">
+      <div class="response-view-container">
+        <div class="modal-header">
+          <span class="modal-icon">◈</span>
+          <span class="modal-title" id="response-view-title">AI 回复详情</span>
+          <span class="modal-mode-buttons">
+            <button class="modal-mode-btn" id="modal-toggle-mode" title="切换预览/原始模式">◈</button>
+          </span>
+          <button class="modal-close" id="response-view-close">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="response-view-content" id="response-view-content"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-modal" id="response-view-copy">
+            <span class="btn-icon">⎘</span>
+            <span>复制内容</span>
+          </button>
+          <span class="modal-status" id="response-view-status"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 数据删除警告模态框 -->
+    <div id="confirm-modal" class="confirm-overlay hidden">
+      <div class="confirm-container">
+        <div class="confirm-header">
+          <div class="confirm-icon-wrapper">
+            <div class="confirm-icon-bg"></div>
+            <span class="confirm-icon">⚠</span>
+          </div>
+          <h3 class="confirm-title">数据删除警告</h3>
+          <p class="confirm-subtitle">此操作不可撤销</p>
+        </div>
+
+        <div class="confirm-body">
+          <div class="confirm-stats">
+            <div class="confirm-stat-row">
+              <span class="confirm-stat-label">⟩ 将删除数据量</span>
+              <span class="confirm-stat-value highlight" id="confirm-count">--</span>
+            </div>
+            <div class="confirm-stat-row">
+              <span class="confirm-stat-label">⟩ 时间范围</span>
+              <span class="confirm-stat-value" id="confirm-range">--</span>
+            </div>
+            <div class="confirm-stat-row">
+              <span class="confirm-stat-label">⟩ 操作类型</span>
+              <span class="confirm-stat-value" id="confirm-action">--</span>
+            </div>
+          </div>
+
+          <p class="confirm-warning-text" id="confirm-warning-text">
+            删除后的数据将无法恢复，请确认是否继续
+          </p>
+        </div>
+
+        <div class="confirm-footer">
+          <button class="btn-confirm-cancel" id="confirm-cancel">
+            <span>✕</span>
+            <span>取消</span>
+          </button>
+          <button class="btn-confirm-danger" id="confirm-proceed">
+            <span>⚠</span>
+            <span>确认删除</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 标签管理模态框 -->
+    <div id="tag-modal" class="modal-overlay hidden">
+      <div class="modal-container">
+        <div class="modal-header">
+          <span class="modal-icon">◈</span>
+          <span class="modal-title">标签管理</span>
+          <button class="modal-close" id="tag-modal-close">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="tag-modal-section">
+            <span class="modal-label">⟩ 当前标签</span>
+            <div class="current-tags" id="current-tags"></div>
+          </div>
+
+          <div class="tag-modal-section">
+            <span class="modal-label">⟩ 添加新标签</span>
+            <div class="add-tag-row">
+              <input type="text" id="new-tag-input" class="terminal-input" placeholder="输入标签名称..." />
+              <button class="btn-primary" id="add-tag-btn">添加</button>
+            </div>
+          </div>
+
+          <div class="tag-modal-section">
+            <span class="modal-label">⟩ 常用标签</span>
+            <div class="popular-tags" id="popular-tags"></div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-modal" id="save-tags-btn">保存</button>
+          <button class="btn-modal btn-modal-secondary" id="cancel-tags-btn">取消</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
