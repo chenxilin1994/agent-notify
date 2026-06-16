@@ -1414,18 +1414,11 @@ body {
 .md-ul {
   margin: var(--spacing-sm) 0;
   padding-left: var(--spacing-lg);
+  list-style-type: disc;
 }
 
 .md-li {
   margin: var(--spacing-xs) 0;
-  position: relative;
-}
-
-.md-li::before {
-  content: "•";
-  color: var(--accent-primary);
-  position: absolute;
-  left: -var(--spacing-md);
 }
 
 strong {
