@@ -155,7 +155,7 @@ def normalize_hook_payload(payload: dict, source_agent: str) -> dict:
                     entry = json.loads(line)
                     entry_type = entry.get("type", "")
 
-                    # Check for usage in assistant message
+                    # Check for usage in assistant message (Claude format)
                     if entry_type == "assistant":
                         msg = entry.get("message", {})
                         usage = msg.get("usage", {})
@@ -169,6 +169,15 @@ def normalize_hook_payload(payload: dict, source_agent: str) -> dict:
                         if result_usage:
                             input_tokens = result_usage.get("input_tokens", input_tokens)
                             output_tokens = result_usage.get("output_tokens", output_tokens)
+
+                    # Check for event_msg with token_count (Codex format)
+                    elif entry_type == "event_msg":
+                        payload_data = entry.get("payload", {})
+                        if payload_data.get("type") == "token_count":
+                            info = payload_data.get("info", {})
+                            last_usage = info.get("last_token_usage", {})
+                            input_tokens = last_usage.get("input_tokens", input_tokens)
+                            output_tokens = last_usage.get("output_tokens", output_tokens)
 
                     if input_tokens and output_tokens:
                         break
