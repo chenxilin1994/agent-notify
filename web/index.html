@@ -91,7 +91,14 @@
             <option value="30">◈ 30天</option>
             <option value="90">◈ 90天</option>
             <option value="365">◈ 365天</option>
+            <option value="custom">◈ 自定义</option>
           </select>
+        </div>
+
+        <div class="filter-group date-range-group hidden" id="date-range-group">
+          <input type="date" id="date-start" class="terminal-input date-input" />
+          <span class="date-separator">→</span>
+          <input type="date" id="date-end" class="terminal-input date-input" />
         </div>
 
         <div class="filter-group">
@@ -134,7 +141,8 @@
 
         <div class="search-group">
           <span class="search-icon">⌕</span>
-          <input type="search" id="search-input" class="terminal-input" placeholder="搜索对话..." />
+          <input type="search" id="search-input" class="terminal-input" placeholder="搜索对话... 支持正则表达式" />
+          <button class="search-mode-btn" id="toggle-search-mode" title="切换正则/普通搜索">◈</button>
         </div>
 
         <div class="stats-group">
@@ -411,6 +419,24 @@
             <span>复制内容</span>
           </button>
           <span class="modal-status" id="response-view-status"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 会话聚合视图模态框 -->
+    <div id="session-modal" class="modal-overlay hidden">
+      <div class="session-view-container">
+        <div class="modal-header">
+          <span class="modal-icon">◈</span>
+          <span class="modal-title">会话详情</span>
+          <span class="session-id-display" id="session-id-display">--</span>
+          <button class="modal-close" id="session-close">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="session-events" id="session-events"></div>
+        </div>
+        <div class="modal-footer">
+          <span class="session-count" id="session-count">0 条对话</span>
         </div>
       </div>
     </div>

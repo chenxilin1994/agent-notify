@@ -282,7 +282,10 @@ def get_history(
     time_days: str | None = None,
     category: str | None = None,
     search: str | None = None,
+    search_mode: str = "normal",
     bookmarked: bool = False,
+    date_start: str | None = None,
+    date_end: str | None = None,
     sort_column: str = "timestamp",
     sort_direction: str = "desc",
 ) -> tuple[list[dict], int]:
@@ -323,15 +326,27 @@ def get_history(
             where_clauses.append("timestamp >= datetime('now', ?)")
             params.append(f'-{days} days')
 
+    if date_start:
+        where_clauses.append("date(timestamp) >= date(?)")
+        params.append(date_start)
+
+    if date_end:
+        where_clauses.append("date(timestamp) <= date(?)")
+        params.append(date_end)
+
     if search:
-        search_lower = search.lower()
+        # Both normal and regex use LIKE (regex mode allows SQL wildcards % and _)
         where_clauses.append("""
             (LOWER(summary) LIKE ? OR
              LOWER(user_input) LIKE ? OR
              LOWER(project_name) LIKE ? OR
              LOWER(agent) LIKE ?)
         """)
-        search_param = f"%{search_lower}%"
+        # In regex mode, user can use % and _ wildcards directly
+        if search_mode == "regex":
+            search_param = search.lower()
+        else:
+            search_param = f"%{search.lower()}%"
         params.extend([search_param, search_param, search_param, search_param])
 
     where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"

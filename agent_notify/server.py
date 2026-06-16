@@ -94,6 +94,10 @@ class APIHandler(BaseHTTPRequestHandler):
             self.handle_get_categories()
         elif path == "/api/analytics":
             self.handle_analytics()
+        elif path.startswith("/api/session/"):
+            # Extract session_id from path like /api/session/{session_id}
+            session_id = path.split("/")[-1]
+            self.handle_session(session_id)
         elif path == "/api/export/csv":
             self.handle_export_csv(query)
         elif path == "/api/export/json":
@@ -198,7 +202,10 @@ class APIHandler(BaseHTTPRequestHandler):
             time_days = query.get("time_days", [None])[0]
             category = query.get("category", [None])[0]
             search = query.get("search", [None])[0]
+            search_mode = query.get("search_mode", ["normal"])[0]
             bookmarked = query.get("bookmarked", ["false"])[0] == "true"
+            date_start = query.get("date_start", [None])[0]
+            date_end = query.get("date_end", [None])[0]
             sort_column = query.get("sort", ["timestamp"])[0]
             sort_direction = query.get("dir", ["desc"])[0]
 
@@ -210,7 +217,10 @@ class APIHandler(BaseHTTPRequestHandler):
                 time_days=time_days,
                 category=category,
                 search=search,
+                search_mode=search_mode,
                 bookmarked=bookmarked,
+                date_start=date_start,
+                date_end=date_end,
                 sort_column=sort_column,
                 sort_direction=sort_direction,
             )
@@ -388,6 +398,28 @@ class APIHandler(BaseHTTPRequestHandler):
         try:
             analytics = self.get_analytics_data()
             self.send_json(analytics)
+        except Exception as e:
+            self.send_json({"error": str(e)}, 500)
+
+    def handle_session(self, session_id: str) -> None:
+        """Get all events for a session."""
+        try:
+            STATE_DIR.mkdir(exist_ok=True)
+            conn = sqlite3.connect(str(DB_PATH))
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+
+            cursor.execute("""
+                SELECT * FROM events
+                WHERE session_id = ?
+                ORDER BY timestamp ASC
+            """, (session_id,))
+
+            rows = cursor.fetchall()
+            conn.close()
+
+            events = [dict(row) for row in rows]
+            self.send_json(events)
         except Exception as e:
             self.send_json({"error": str(e)}, 500)
 

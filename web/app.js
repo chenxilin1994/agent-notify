@@ -18,6 +18,9 @@ let sortDirection = "desc";
 let responseMode = "preview"; // "preview" or "raw"
 let responseSize = "normal"; // "normal", "expanded", "collapsed"
 
+// Search mode state
+let searchMode = "normal"; // "normal" or "regex"
+
 // Utility Functions
 function setStatus(message) {
   const el = document.getElementById("status-message");
@@ -421,9 +424,10 @@ function renderTable(events) {
     const userInputFull = item.user_input || "";
     const userInputDisplay = searchTerm ? highlightText(userInputFull, searchTerm) : truncateText(userInputFull, 50);
     const inputTruncatedClass = isTruncated(userInputFull, 50) ? " truncated-indicator" : "";
-    html += '<td class="col-input cell-with-copy' + inputTruncatedClass + '" data-full-content="' + escapeHtml(userInputFull) + '" data-field-type="input" data-event-id="' + item.id + '">';
+    html += '<td class="col-input cell-with-copy' + inputTruncatedClass + '" data-full-content="' + escapeHtml(userInputFull) + '" data-field-type="input" data-event-id="' + item.id + '" data-session-id="' + (item.session_id || "") + '">';
     html += '<div class="cell-content">' + userInputDisplay + '</div>';
     html += '<button class="cell-copy-btn" data-copy-content="' + escapeHtml(userInputFull) + '" title="复制">⎘</button>';
+    html += '<button class="session-btn" data-session-id="' + (item.session_id || "") + '" title="查看会话">◈</button>';
     html += "</td>";
 
     // Summary cell - with copy button and highlight
@@ -444,6 +448,16 @@ function renderTable(events) {
     btn.addEventListener("click", function(e) {
       e.stopPropagation();
       toggleBookmark(btn.dataset.eventId, btn);
+    });
+  });
+
+  // Add click handlers to session buttons
+  tbody.querySelectorAll(".session-btn").forEach(function(btn) {
+    btn.addEventListener("click", function(e) {
+      e.stopPropagation();
+      if (btn.dataset.sessionId) {
+        showSessionModal(btn.dataset.sessionId);
+      }
     });
   });
 
@@ -678,6 +692,8 @@ function refreshHistory() {
   const categoryFilter = document.getElementById("category-filter");
   const tagsFilter = document.getElementById("tags-filter");
   const bookmarkFilter = document.getElementById("bookmark-filter");
+  const dateStart = document.getElementById("date-start");
+  const dateEnd = document.getElementById("date-end");
 
   const search = searchInput ? searchInput.value.trim() : "";
   const timeDays = timeFilter ? timeFilter.value : "all";
@@ -692,10 +708,15 @@ function refreshHistory() {
     per_page: paginationState.perPage,
     sort: sortColumn,
     dir: sortDirection,
+    search_mode: searchMode,
   });
 
   if (search) params.set("search", search);
-  if (timeDays !== "all") params.set("time_days", timeDays);
+  if (timeDays !== "all" && timeDays !== "custom") params.set("time_days", timeDays);
+  if (timeDays === "custom") {
+    if (dateStart && dateStart.value) params.set("date_start", dateStart.value);
+    if (dateEnd && dateEnd.value) params.set("date_end", dateEnd.value);
+  }
   if (agent !== "all") params.set("agent", agent);
   if (project !== "all") params.set("project", project);
   if (category !== "all") params.set("category", category);
@@ -946,7 +967,28 @@ document.addEventListener("DOMContentLoaded", function() {
   // Filter event handlers
   document.getElementById("time-filter").addEventListener("change", function() {
     paginationState.page = 1;
+    toggleDateRange();
     refreshHistory();
+  });
+
+  document.getElementById("date-start").addEventListener("change", function() {
+    paginationState.page = 1;
+    refreshHistory();
+  });
+
+  document.getElementById("date-end").addEventListener("change", function() {
+    paginationState.page = 1;
+    refreshHistory();
+  });
+
+  document.getElementById("toggle-search-mode").addEventListener("click", toggleSearchMode);
+
+  // Session modal handlers
+  document.getElementById("session-close").addEventListener("click", closeSessionModal);
+  document.getElementById("session-modal").addEventListener("click", function(e) {
+    if (e.target.id === "session-modal") {
+      closeSessionModal();
+    }
   });
 
   document.getElementById("agent-filter").addEventListener("change", function() {
@@ -1191,8 +1233,97 @@ function toggleBookmark(eventId, btn) {
 }
 
 // =====================
-// Analytics Functions (continued)
+// Session View Functions
 // =====================
+
+function showSessionModal(sessionId) {
+  const modal = document.getElementById("session-modal");
+  const eventsContainer = document.getElementById("session-events");
+  const sessionIdDisplay = document.getElementById("session-id-display");
+  const sessionCount = document.getElementById("session-count");
+
+  sessionIdDisplay.textContent = "Session: " + sessionId.substring(0, 12) + "...";
+
+  fetchJson("/api/session/" + sessionId).then(function(events) {
+    sessionCount.textContent = events.length + " 条对话";
+    renderSessionEvents(events, eventsContainer);
+    modal.classList.remove("hidden");
+  }).catch(function(err) {
+    console.error("Failed to fetch session:", err);
+    eventsContainer.innerHTML = '<p class="empty-state">加载失败</p>';
+    modal.classList.remove("hidden");
+  });
+}
+
+function renderSessionEvents(events, container) {
+  if (!events || events.length === 0) {
+    container.innerHTML = '<p class="empty-state">暂无对话</p>';
+    return;
+  }
+
+  let html = "";
+  events.forEach(function(event) {
+    const time = formatTimestamp(event.timestamp);
+    const model = event.model || "--";
+
+    html += '<div class="session-event">';
+    html += '<div class="session-event-header">';
+    html += '<span class="session-event-time">' + time + '</span>';
+    html += '<span class="session-event-model">' + model + '</span>';
+    html += '</div>';
+
+    html += '<div class="session-event-input">';
+    html += '<div class="session-event-input-label">⟩ 用户输入</div>';
+    html += '<div class="session-event-input-text">' + (event.user_input || "") + '</div>';
+    html += '</div>';
+
+    html += '<div class="session-event-response">';
+    html += '<div class="session-event-response-label">⟨ AI回复</div>';
+    if (responseMode === "preview") {
+      html += '<div class="session-event-response-text">' + markdownToHtml(event.summary || "") + '</div>';
+    } else {
+      html += '<div class="session-event-response-text raw-mode">' + (event.summary || "") + '</div>';
+    }
+    html += '</div>';
+
+    html += '</div>';
+  });
+
+  container.innerHTML = html;
+}
+
+function closeSessionModal() {
+  const modal = document.getElementById("session-modal");
+  modal.classList.add("hidden");
+}
+
+// =====================
+// Search Mode & Date Range Functions
+// =====================
+
+function toggleSearchMode() {
+  const btn = document.getElementById("toggle-search-mode");
+  if (searchMode === "normal") {
+    searchMode = "regex";
+    btn.classList.add("active");
+    btn.textContent = "◉";
+  } else {
+    searchMode = "normal";
+    btn.classList.remove("active");
+    btn.textContent = "◈";
+  }
+}
+
+function toggleDateRange() {
+  const timeFilter = document.getElementById("time-filter");
+  const dateRangeGroup = document.getElementById("date-range-group");
+
+  if (timeFilter.value === "custom") {
+    dateRangeGroup.classList.remove("hidden");
+  } else {
+    dateRangeGroup.classList.add("hidden");
+  }
+}
 
 function toggleAnalytics() {
   const section = document.getElementById("analytics-section");
