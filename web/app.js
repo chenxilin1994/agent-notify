@@ -139,23 +139,36 @@ function showResponseModal() {
   const content = document.getElementById("response-view-content");
   const titleEl = document.getElementById("response-view-title");
   const modalToggleBtn = document.getElementById("modal-toggle-mode");
-  const mainToggleBtn = document.getElementById("toggle-mode");
+  const statusEl = document.getElementById("response-view-status");
 
-  if (!latestState) return;
+  if (!latestState) {
+    // Fetch latest data first
+    fetchJson("/api/latest").then(function(data) {
+      latestState = data;
+      showResponseModal();
+    }).catch(function(err) {
+      content.textContent = "暂无数据";
+      content.classList.remove("raw-mode");
+      titleEl.textContent = "AI 回复详情";
+      modal.classList.remove("hidden");
+    });
+    return;
+  }
 
   titleEl.textContent = "AI 回复详情";
+  statusEl.textContent = "";
 
   // Sync modal toggle button state with main view
   if (responseMode === "raw") {
     modalToggleBtn.classList.add("active");
     modalToggleBtn.textContent = "◉";
     content.classList.add("raw-mode");
-    content.textContent = latestState.summary || "";
+    content.textContent = latestState.summary || "暂无回复";
   } else {
     modalToggleBtn.classList.remove("active");
     modalToggleBtn.textContent = "◈";
     content.classList.remove("raw-mode");
-    content.innerHTML = markdownToHtml(latestState.summary || "");
+    content.innerHTML = markdownToHtml(latestState.summary || "暂无回复");
   }
 
   modal.classList.remove("hidden");
