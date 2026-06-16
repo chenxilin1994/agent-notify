@@ -468,17 +468,22 @@ class APIHandler(BaseHTTPRequestHandler):
         """Clean up old events based on POST body."""
         try:
             content_length = int(self.headers.get("Content-Length", 0))
-            body = self.rfile.read(content_length)
-            data = json.loads(body)
+            if content_length > 0:
+                body = self.rfile.read(content_length)
+                data = json.loads(body)
+            else:
+                data = {}
 
             days = data.get("days", 30)
             if days not in [7, 30, 90, 365]:
-                self.send_json({"error": "Invalid days value"}, 400)
+                self.send_json({"error": "Invalid days value: " + str(days)}, 400)
                 return
 
             result = delete_events_before_days(days)
             self.send_json(result)
 
+        except json.JSONDecodeError:
+            self.send_json({"error": "Invalid JSON body"}, 400)
         except Exception as e:
             self.send_json({"error": str(e)}, 500)
 
