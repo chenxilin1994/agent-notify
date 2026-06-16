@@ -854,6 +854,9 @@ function closeConfirmModal() {
 function performCleanupConfirmed() {
   if (!pendingCleanupDays) return;
 
+  // Store days value before closing modal (which clears it)
+  const daysToClean = pendingCleanupDays;
+
   const msgEl = document.getElementById("admin-message");
   msgEl.textContent = "处理中...";
   msgEl.className = "admin-message";
@@ -862,14 +865,14 @@ function performCleanupConfirmed() {
 
   let url, options;
 
-  if (pendingCleanupDays === "all") {
+  if (daysToClean === "all") {
     url = "/api/clear-all";
     options = { method: "POST" };
   } else {
     url = "/api/cleanup";
     options = {
       method: "POST",
-      body: JSON.stringify({ days: parseInt(pendingCleanupDays) }),
+      body: JSON.stringify({ days: parseInt(daysToClean) }),
     };
   }
 
