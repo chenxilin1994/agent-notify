@@ -68,14 +68,41 @@ function fetchStats() {
   });
 }
 
-// Show window and refresh data
+// Show window and refresh data - force to foreground
 function showAndRefreshWindow() {
   if (mainWindow) {
+    // Restore if minimized
+    if (mainWindow.isMinimized()) {
+      mainWindow.restore();
+    }
+
+    // Show the window
     mainWindow.show();
+
+    // Force window to foreground (Windows specific tricks)
+    // Temporarily set always on top to bring window to front
+    mainWindow.setAlwaysOnTop(true, 'floating');
+
+    // Focus the window
     mainWindow.focus();
-    // Reload the page to show new data
-    mainWindow.reload();
-    console.log('Window shown and refreshed');
+
+    // Flash the frame to attract attention (optional)
+    mainWindow.flashFrame(true);
+
+    // Reset always on top after a short delay
+    setTimeout(() => {
+      mainWindow.setAlwaysOnTop(false);
+      mainWindow.flashFrame(false);
+    }, 100);
+
+    // Move to top of window stack
+    mainWindow.moveTop();
+
+    // Refresh the page after window is visible
+    setTimeout(() => {
+      mainWindow.reload();
+      console.log('Window shown, focused, and refreshed');
+    }, 200);
   }
 }
 
@@ -231,7 +258,9 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js')
     },
     backgroundColor: '#0a0e27', // Match dark theme
-    show: false // Don't show until loaded
+    show: false, // Don't show until loaded
+    focusable: true, // Ensure window can be focused
+    skipTaskbar: false, // Show in taskbar
   });
 
   mainWindow.loadURL(`http://localhost:${PORT}`);
@@ -239,6 +268,7 @@ function createWindow() {
   // Show window when ready
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
+    mainWindow.focus();
   });
 
   // Handle close - minimize to tray instead
@@ -252,6 +282,11 @@ function createWindow() {
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
+
+  // Ensure window can be brought to front when hidden and shown again
+  mainWindow.on('show', () => {
+    mainWindow.focus();
+  });
 }
 
 // Create tray icon
@@ -263,9 +298,24 @@ function createTray() {
     {
       label: '打开界面',
       click: () => {
+        showAndRefreshWindow(); // 使用统一的显示方法
+      }
+    },
+    {
+      label: '强制前台显示',
+      click: () => {
         if (mainWindow) {
+          // 最强力的前台显示方法
+          mainWindow.restore();
           mainWindow.show();
+          mainWindow.setAlwaysOnTop(true, 'screen-saver'); // 最高优先级
           mainWindow.focus();
+          mainWindow.flashFrame(true);
+
+          setTimeout(() => {
+            mainWindow.setAlwaysOnTop(false);
+            mainWindow.flashFrame(false);
+          }, 1000);
         }
       }
     },
@@ -281,11 +331,15 @@ function createTray() {
     {
       label: '重启服务',
       click: async () => {
+        stopFlagFileWatcher();
         stopAutoOpenPolling();
         stopServer();
         setTimeout(async () => {
           await startServer();
-          setTimeout(() => startAutoOpenPolling(), 2000);
+          setTimeout(() => {
+            startFlagFileWatcher();
+            startAutoOpenPolling();
+          }, 2000);
         }, 1000);
       }
     },
@@ -294,6 +348,7 @@ function createTray() {
       click: () => {
         if (mainWindow) {
           mainWindow.show();
+          mainWindow.focus();
           mainWindow.webContents.openDevTools();
         }
       }
@@ -303,6 +358,7 @@ function createTray() {
       label: '退出',
       click: () => {
         app.isQuitting = true;
+        stopFlagFileWatcher();
         stopAutoOpenPolling();
         stopServer();
         app.quit();
@@ -314,10 +370,7 @@ function createTray() {
   tray.setContextMenu(contextMenu);
 
   tray.on('double-click', () => {
-    if (mainWindow) {
-      mainWindow.show();
-      mainWindow.focus();
-    }
+    showAndRefreshWindow(); // 使用统一的显示方法
   });
 }
 
