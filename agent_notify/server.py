@@ -35,7 +35,9 @@ from agent_notify.storage import (
     update_category_rule,
     get_events_for_export,
     get_history,
+    get_latest,
 )
+from agent_notify.command_sender import CommandRequestError, send_command as send_ai_command
 
 
 class APIHandler(BaseHTTPRequestHandler):
@@ -119,6 +121,8 @@ class APIHandler(BaseHTTPRequestHandler):
             self.handle_cleanup()
         elif path == "/api/clear-all":
             self.handle_clear_all()
+        elif path == "/api/send-command":
+            self.handle_send_command()
         elif path == "/api/tags":
             self.handle_create_tag()
         elif path.startswith("/api/events/") and path.endswith("/bookmark"):
@@ -178,20 +182,37 @@ class APIHandler(BaseHTTPRequestHandler):
     def handle_latest(self) -> None:
         """Get latest event."""
         try:
-            STATE_DIR.mkdir(exist_ok=True)
-            conn = sqlite3.connect(str(DB_PATH))
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM events ORDER BY timestamp DESC LIMIT 1")
-            row = cursor.fetchone()
-            conn.close()
+            latest = get_latest()
 
-            if row:
-                self.send_json(dict(row))
+            if latest:
+                self.send_json(latest)
             else:
                 self.send_json({"error": "No events found"}, 404)
         except sqlite3.OperationalError:
             self.send_json({"error": "Database not initialized"}, 404)
+
+    def handle_send_command(self) -> None:
+        """Send a follow-up command to the latest AI session."""
+        try:
+            content_length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(content_length) if content_length > 0 else b"{}"
+            data = json.loads(body)
+            command = data.get("command", "")
+            event = data.get("event") or get_latest()
+            if not event:
+                self.send_json({"error": "No events found"}, 404)
+                return
+
+            result = send_ai_command(event, command)
+            self.send_json(result)
+        except json.JSONDecodeError:
+            self.send_json({"error": "Invalid JSON body"}, 400)
+        except CommandRequestError as e:
+            self.send_json({"error": str(e)}, 400)
+        except FileNotFoundError as e:
+            self.send_json({"error": f"找不到 CLI: {e.filename}"}, 500)
+        except Exception as e:
+            self.send_json({"error": str(e)}, 500)
 
     def handle_history(self, query: dict) -> None:
         """Get paginated history."""

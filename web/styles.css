@@ -385,6 +385,73 @@ body {
   padding: var(--spacing-md);
 }
 
+.command-form {
+  padding: var(--spacing-md);
+  border-top: 1px solid rgba(136, 146, 166, 0.12);
+  background: rgba(0, 0, 0, 0.14);
+}
+
+.command-input {
+  width: 100%;
+  min-height: 64px;
+  resize: vertical;
+  padding: 10px 12px;
+  color: var(--text-primary);
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(0, 255, 163, 0.22);
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  outline: none;
+}
+
+.command-input:focus {
+  border-color: rgba(0, 255, 163, 0.55);
+  box-shadow: 0 0 0 2px rgba(0, 255, 163, 0.08);
+}
+
+.command-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
+}
+
+.command-status {
+  min-height: 18px;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.command-status.success {
+  color: var(--accent-primary);
+}
+
+.command-status.error {
+  color: var(--danger);
+}
+
+.command-send-btn {
+  min-width: 72px;
+  height: 30px;
+  padding: 0 14px;
+  color: var(--bg-primary);
+  background: var(--accent-primary);
+  border: 1px solid rgba(0, 255, 163, 0.7);
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.command-send-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .user-input-block,
 .response-block {
   margin-bottom: var(--spacing-md);

@@ -75,6 +75,19 @@
             <span class="project-path" id="latest-project">/未知</span>
             <span class="session-id" id="latest-session">会话: --</span>
           </div>
+
+          <form class="command-form" id="command-form">
+            <textarea
+              class="command-input"
+              id="command-input"
+              rows="2"
+              placeholder="输入要发送给当前 AI 会话的命令..."
+            ></textarea>
+            <div class="command-actions">
+              <span class="command-status" id="command-status"></span>
+              <button class="command-send-btn" id="command-send" type="submit">发送</button>
+            </div>
+          </form>
         </div>
 
         <p id="status-message" class="status-text" role="status" aria-live="polite"></p>

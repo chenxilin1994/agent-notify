@@ -27,6 +27,14 @@ function setStatus(message) {
   if (el) el.textContent = message || "";
 }
 
+function setCommandStatus(message, type) {
+  const el = document.getElementById("command-status");
+  if (!el) return;
+  el.textContent = message || "";
+  el.classList.remove("success", "error");
+  if (type) el.classList.add(type);
+}
+
 // Simple Markdown to HTML converter
 function markdownToHtml(text) {
   if (!text) return "";
@@ -374,6 +382,44 @@ function renderLatest() {
     const sid = latestState.session_id || "--";
     sessionEl.textContent = "session: " + sid.substring(0, 8) + "...";
   }
+}
+
+function sendLatestCommand(event) {
+  event.preventDefault();
+
+  const input = document.getElementById("command-input");
+  const btn = document.getElementById("command-send");
+  const command = input ? input.value.trim() : "";
+
+  if (!latestState) {
+    setCommandStatus("暂无可发送的会话", "error");
+    return;
+  }
+
+  if (!command) {
+    setCommandStatus("请输入命令", "error");
+    return;
+  }
+
+  if (btn) btn.disabled = true;
+  setCommandStatus("发送中...", "");
+
+  fetchJson("/api/send-command", {
+    method: "POST",
+    body: JSON.stringify({
+      command: command,
+      event: latestState,
+    }),
+  }).then(function(result) {
+    const agent = result.agent || latestState.agent || "AI";
+    const pid = result.pid ? " PID " + result.pid : "";
+    setCommandStatus("已发送到 " + agent + pid, "success");
+    if (input) input.value = "";
+  }).catch(function(err) {
+    setCommandStatus("发送失败: " + err.message, "error");
+  }).finally(function() {
+    if (btn) btn.disabled = false;
+  });
 }
 
 function renderTable(events) {
@@ -995,6 +1041,11 @@ document.addEventListener("DOMContentLoaded", function() {
   });
 
   document.getElementById("toggle-search-mode").addEventListener("click", toggleSearchMode);
+
+  const commandForm = document.getElementById("command-form");
+  if (commandForm) {
+    commandForm.addEventListener("submit", sendLatestCommand);
+  }
 
   // Session modal handlers
   document.getElementById("session-close").addEventListener("click", closeSessionModal);
