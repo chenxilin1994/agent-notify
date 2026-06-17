@@ -204,9 +204,30 @@ def test_scan_once_can_baseline_existing_sessions_without_processing(tmp_path: P
 
     assert count == 0
     assert processed == []
-    assert json.loads(state_path.read_text(encoding="utf-8")) == [
-        "desktop-session-4:2026-06-17T01:41:01.000Z:final_answer"
-    ]
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    assert state["seen"] == ["desktop-session-4:2026-06-17T01:41:01.000Z:final_answer"]
+    assert str(session_file) in state["files"]
+
+
+def test_scan_once_skips_unchanged_session_files(tmp_path: Path, monkeypatch):
+    sessions_root = tmp_path / "sessions"
+    state_path = tmp_path / "state" / "seen.json"
+    session_file = sessions_root / "rollout.jsonl"
+    _write_jsonl(session_file, [])
+    calls = []
+
+    def fake_extract(path: Path) -> list[dict]:
+        calls.append(path)
+        return []
+
+    monkeypatch.setattr(desktop_watcher, "extract_completed_session_payloads", fake_extract)
+
+    first_count = desktop_watcher.scan_once(sessions_root, state_path)
+    second_count = desktop_watcher.scan_once(sessions_root, state_path)
+
+    assert first_count == 0
+    assert second_count == 0
+    assert calls == [session_file]
 
 
 def test_iter_session_files_limits_to_recent_files(tmp_path: Path):

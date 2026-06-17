@@ -24,23 +24,57 @@ def iter_session_files(root: Path, limit: int = RECENT_FILE_LIMIT) -> Iterable[P
     return files[-limit:]
 
 
-def load_seen(path: Path = STATE_PATH) -> set[str]:
+def load_state(path: Path = STATE_PATH) -> dict:
     if not path.exists():
-        return set()
+        return {"seen": set(), "files": {}}
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError:
-        return set()
+        return {"seen": set(), "files": {}}
     if not isinstance(data, list):
-        return set()
-    return {str(item) for item in data}
+        seen = data.get("seen", []) if isinstance(data, dict) else []
+        files = data.get("files", {}) if isinstance(data, dict) else {}
+        if not isinstance(seen, list):
+            seen = []
+        if not isinstance(files, dict):
+            files = {}
+        return {"seen": {str(item) for item in seen}, "files": files}
+    return {"seen": {str(item) for item in data}, "files": {}}
+
+
+def load_seen(path: Path = STATE_PATH) -> set[str]:
+    return load_state(path)["seen"]
+
+
+def save_state(state: dict, path: Path = STATE_PATH) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = path.with_suffix(path.suffix + ".tmp")
+    data = {
+        "seen": sorted(state["seen"]),
+        "files": state["files"],
+    }
+    tmp_path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    tmp_path.replace(path)
 
 
 def save_seen(seen: set[str], path: Path = STATE_PATH) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp_path = path.with_suffix(path.suffix + ".tmp")
-    tmp_path.write_text(json.dumps(sorted(seen), ensure_ascii=False, indent=2), encoding="utf-8")
-    tmp_path.replace(path)
+    save_state({"seen": seen, "files": {}}, path)
+
+
+def file_signature(path: Path) -> dict:
+    stat = path.stat()
+    return {"mtime_ns": stat.st_mtime_ns, "size": stat.st_size}
+
+
+def is_unchanged_seen_file(session_file: Path, state: dict) -> bool:
+    signature = state["files"].get(str(session_file))
+    if not isinstance(signature, dict):
+        return False
+    try:
+        current = file_signature(session_file)
+    except OSError:
+        return False
+    return signature == current
 
 
 def extract_completed_session_payloads(session_file: Path) -> list[dict]:
@@ -156,24 +190,35 @@ def scan_once(
     state_path: Path = STATE_PATH,
     baseline_existing: bool = False,
 ) -> int:
-    seen = load_seen(state_path)
+    state = load_state(state_path)
+    seen = state["seen"]
     processed = 0
+    changed = False
 
     for session_file in iter_session_files(root):
+        if is_unchanged_seen_file(session_file, state):
+            continue
         for payload in extract_completed_session_payloads(session_file):
             event_key = payload["_desktop_event_key"]
             if event_key in seen:
                 continue
             if baseline_existing:
                 seen.add(event_key)
+                changed = True
                 continue
             payload = {key: value for key, value in payload.items() if not key.startswith("_desktop_")}
             process_hook_payload(payload)
             seen.add(event_key)
             processed += 1
+            changed = True
+        try:
+            state["files"][str(session_file)] = file_signature(session_file)
+            changed = True
+        except OSError:
+            continue
 
-    if processed or baseline_existing:
-        save_seen(seen, state_path)
+    if changed or baseline_existing:
+        save_state(state, state_path)
     return processed
 
 
