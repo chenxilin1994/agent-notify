@@ -643,7 +643,11 @@ class ReuseAddrServer:
 
     def __init__(self, host: str, port: int, handler: type) -> None:
         import socketserver
-        self.server = socketserver.ThreadingTCPServer((host, port), handler)
+
+        class ReusableThreadingTCPServer(socketserver.ThreadingTCPServer):
+            allow_reuse_address = True
+
+        self.server = ReusableThreadingTCPServer((host, port), handler)
         self.server.daemon_threads = True
 
     def serve_forever(self) -> None:
