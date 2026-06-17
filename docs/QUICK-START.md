@@ -76,6 +76,18 @@ claude
 # 任务完成后，Web UI 应自动打开
 ```
 
+### Codex Windows App 额外步骤
+
+如果你使用 Codex Windows app，而不是 WSL 里的 `codex` 终端应用，请同时启动 watcher：
+
+```bash
+bash bin/watch-codex-desktop.sh
+```
+
+watcher 会监听 `/mnt/c/Users/xilig/.codex/sessions` 的新完成事件，然后触发同一套 Agent Notify Web UI。
+
+首次启动只监听之后的新完成事件；如果要导入已有历史，运行 `bash bin/watch-codex-desktop.sh --once --backfill`。
+
 ---
 
 ## 📖 完整教程

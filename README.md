@@ -124,6 +124,22 @@ agent-notify/
 1. 记录对话内容到 SQLite 数据库
 2. 在浏览器中打开 Web UI 显示最新对话
 
+### Codex Windows App
+
+Codex Windows app 的回答完成事件不会触发 WSL 里的 `~/.codex/hooks.json`。如果你在 Codex Windows app 中工作，请额外启动 Desktop session watcher：
+
+```bash
+bash bin/watch-codex-desktop.sh
+```
+
+它会监听 `/mnt/c/Users/xilig/.codex/sessions` 下的新 `final_answer` / `task_complete` 记录，并复用同一套 SQLite、通知 flag 和 Web UI。
+
+首次启动时 watcher 只会把已有历史记录标记为已见，避免把旧会话全部弹出来。需要导入历史时，手动运行：
+
+```bash
+bash bin/watch-codex-desktop.sh --once --backfill
+```
+
 ### Web UI 功能
 
 - **最新对话卡片**：显示最近一次对话的完整内容
