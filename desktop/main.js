@@ -14,6 +14,10 @@ const POLL_INTERVAL = 5000; // 每5秒检查一次新数据（作为备用）
 const FLAG_FILE = path.join(path.dirname(__dirname), 'state', 'new_event.flag');
 let lastEventCount = 0;
 
+function getResourcePath() {
+  return process.resourcesPath || path.join(__dirname, '..');
+}
+
 function stopConflictingServer() {
   return new Promise((resolve) => {
     if (process.platform === 'win32') {
@@ -33,7 +37,7 @@ function stopConflictingServer() {
 // Check if server is already running
 function checkServerRunning() {
   return new Promise((resolve) => {
-    const expectedRoot = process.resourcesPath || path.join(__dirname, '..');
+    const expectedRoot = getResourcePath();
     const req = http.request({
       hostname: 'localhost',
       port: PORT,
@@ -240,7 +244,7 @@ async function startServer() {
 
   await stopConflictingServer();
 
-  const resourcePath = process.resourcesPath || path.join(__dirname, '..');
+  const resourcePath = getResourcePath();
   const serverPath = path.join(resourcePath, 'agent_notify');
 
   const pythonExe = getPythonExecutable();
@@ -250,8 +254,8 @@ async function startServer() {
   console.log('Server path:', serverPath);
 
   serverProcess = spawn(pythonExe, serverArgs, {
-    cwd: serverPath,
-    env: { ...process.env, PYTHONPATH: serverPath },
+    cwd: resourcePath,
+    env: { ...process.env, PYTHONPATH: resourcePath },
     stdio: 'inherit' // Show server logs in console
   });
 
