@@ -14,17 +14,44 @@ const POLL_INTERVAL = 5000; // 每5秒检查一次新数据（作为备用）
 const FLAG_FILE = path.join(path.dirname(__dirname), 'state', 'new_event.flag');
 let lastEventCount = 0;
 
+function stopConflictingServer() {
+  return new Promise((resolve) => {
+    if (process.platform === 'win32') {
+      const command = `for /f "tokens=5" %a in ('netstat -ano ^| findstr :${PORT}') do taskkill /PID %a /F`;
+      const child = spawn('cmd.exe', ['/c', command], { stdio: 'ignore' });
+      child.on('close', () => resolve());
+      child.on('error', () => resolve());
+      return;
+    }
+
+    const child = spawn('pkill', ['-f', `agent_notify.server ${PORT}`], { stdio: 'ignore' });
+    child.on('close', () => resolve());
+    child.on('error', () => resolve());
+  });
+}
+
 // Check if server is already running
 function checkServerRunning() {
   return new Promise((resolve) => {
+    const expectedRoot = process.resourcesPath || path.join(__dirname, '..');
     const req = http.request({
       hostname: 'localhost',
       port: PORT,
-      path: '/api/stats',
+      path: '/api/identity',
       method: 'GET',
       timeout: 2000
     }, (res) => {
-      resolve(true);
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        try {
+          const identity = JSON.parse(data);
+          const serverRoot = path.normalize(identity.root || '');
+          resolve(identity.app === 'agent-notify' && serverRoot === path.normalize(expectedRoot));
+        } catch (error) {
+          resolve(false);
+        }
+      });
     });
 
     req.on('error', () => resolve(false));
@@ -210,6 +237,8 @@ async function startServer() {
     console.log('Server already running on port', PORT, '- skipping startup');
     return;
   }
+
+  await stopConflictingServer();
 
   const resourcePath = process.resourcesPath || path.join(__dirname, '..');
   const serverPath = path.join(resourcePath, 'agent_notify');

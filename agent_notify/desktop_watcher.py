@@ -12,12 +12,16 @@ from agent_notify.notify import process_hook_payload
 
 DEFAULT_SESSIONS_ROOT = Path("/mnt/c/Users/xilig/.codex/sessions")
 STATE_PATH = Path(__file__).resolve().parents[1] / "state" / "desktop_watcher_seen.json"
+RECENT_FILE_LIMIT = 20
 
 
-def iter_session_files(root: Path) -> Iterable[Path]:
+def iter_session_files(root: Path, limit: int = RECENT_FILE_LIMIT) -> Iterable[Path]:
     if not root.exists():
         return []
-    return sorted(root.glob("**/*.jsonl"), key=lambda path: path.stat().st_mtime)
+    files = sorted(root.glob("**/*.jsonl"), key=lambda path: path.stat().st_mtime)
+    if limit <= 0:
+        return files
+    return files[-limit:]
 
 
 def load_seen(path: Path = STATE_PATH) -> set[str]:

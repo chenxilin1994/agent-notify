@@ -80,6 +80,8 @@ class APIHandler(BaseHTTPRequestHandler):
             self.handle_history(query)
         elif path == "/api/stats":
             self.handle_stats()
+        elif path == "/api/identity":
+            self.send_json(build_identity())
         elif path == "/api/tags":
             self.handle_get_tags()
         elif path.startswith("/api/events/") and path.endswith("/tags"):
@@ -641,7 +643,8 @@ class ReuseAddrServer:
 
     def __init__(self, host: str, port: int, handler: type) -> None:
         import socketserver
-        self.server = socketserver.TCPServer((host, port), handler)
+        self.server = socketserver.ThreadingTCPServer((host, port), handler)
+        self.server.daemon_threads = True
 
     def serve_forever(self) -> None:
         self.server.serve_forever()
@@ -670,6 +673,17 @@ def is_port_in_use(port: int) -> bool:
 def get_server_url(port: int = 18865) -> str:
     """Get server URL."""
     return f"http://localhost:{port}"
+
+
+def build_identity() -> dict:
+    """Expose the runtime paths used by this server instance."""
+    return {
+        "app": "agent-notify",
+        "root": str(ROOT),
+        "web_dir": str(WEB_DIR),
+        "state_dir": str(STATE_DIR),
+        "db_path": str(DB_PATH),
+    }
 
 
 def start_server(port: int = 18865, daemon: bool = True) -> ReuseAddrServer | None:

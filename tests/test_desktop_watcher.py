@@ -207,3 +207,23 @@ def test_scan_once_can_baseline_existing_sessions_without_processing(tmp_path: P
     assert json.loads(state_path.read_text(encoding="utf-8")) == [
         "desktop-session-4:2026-06-17T01:41:01.000Z:final_answer"
     ]
+
+
+def test_iter_session_files_limits_to_recent_files(tmp_path: Path):
+    sessions_root = tmp_path / "sessions"
+    for index in range(25):
+        session_file = sessions_root / f"rollout-{index:02d}.jsonl"
+        _write_jsonl(session_file, [])
+        mtime = 1_000 + index
+        session_file.touch()
+        import os
+
+        os.utime(session_file, (mtime, mtime))
+
+    files = list(desktop_watcher.iter_session_files(sessions_root, limit=3))
+
+    assert [path.name for path in files] == [
+        "rollout-22.jsonl",
+        "rollout-23.jsonl",
+        "rollout-24.jsonl",
+    ]
